@@ -24,7 +24,7 @@ if not exist "%ROOT%.venv\Scripts\python.exe" (echo [ERROR] Could not create ven
 call "%ROOT%.venv\Scripts\activate.bat"
 python -m pip install --upgrade pip wheel
 
-powershell -NoProfile -ExecutionPolicy Bypass -File "%ROOT%download_ffmpeg.ps1" -Root "%ROOT%"
+powershell -NoProfile -ExecutionPolicy Bypass -File "%ROOT%download_ffmpeg.ps1"
 if errorlevel 1 (echo [ERROR] FFmpeg download step failed.& exit /b 1)
 
 set "FFMPEG=%ROOT%runtime\ffmpeg\ffmpeg.exe"

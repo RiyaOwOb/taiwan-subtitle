@@ -1,5 +1,8 @@
 param([string]$Root = $PSScriptRoot)
 $ErrorActionPreference = 'Stop'
+# Normalize optional caller input defensively; default to this script's directory.
+$Root = $Root.Trim().Trim('\"')
+if ([string]::IsNullOrWhiteSpace($Root)) { $Root = $PSScriptRoot }
 $Root = (Resolve-Path -LiteralPath $Root).Path
 $runtime = Join-Path $Root 'runtime\ffmpeg'
 $temp = Join-Path $env:TEMP 'TaiwanSubtitle-ffmpeg.zip'
