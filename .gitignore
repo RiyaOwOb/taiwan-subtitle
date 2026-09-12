@@ -1,0 +1,8 @@
+.venv/
+models/
+output/
+tmp/
+__pycache__/
+*.pyc
+build/
+dist/

@@ -1,156 +1,101 @@
-# 台灣影片 → 繁體中文字幕
+# Taiwan Subtitle — Windows x64
 
-在 Apple Silicon（M 系列）Mac 上，將本機影片或音訊轉成繁體中文 `.srt` 字幕，同時輸出 `.txt` 逐字稿與 `.json` 時間戳資料。程式入口是 **`transcribe.py`**。
+把原本 Apple Silicon / MLX 取向的 `taiwan-subtitle` 改成真正以 **Windows x64** 為發行目標的桌面字幕工具。
 
-## 1. 確認 Mac 與 Homebrew
+設計上參考 AutoSubs：它目前提供 Windows x86_64 安裝檔、local-first 處理、桌面 GUI，以及 bundled FFmpeg sidecar；同樣採本機模型，不把影片上傳雲端。 citehttps://github.com/tmoroney/auto-subs
 
-打開 Terminal，確認使用原生 Apple Silicon 環境：
+## 這個版本的架構
 
-```bash
-uname -m
+- GUI：Tkinter + tkinterdnd2，支援拖放影片／音訊與多檔批次。
+- ASR：TEA-ASR-1.1 / TEA-ASR-1.1-mini。
+- Timestamp：Qwen3-ForcedAligner-0.6B。Qwen3-ASR 官方目前提供 Transformers backend，並能直接掛上 Forced Aligner 回傳時間戳。 citehttps://github.com/QwenLM/Qwen3-ASR
+- GPU：自動偵測 NVIDIA CUDA；也可手動 CPU / CUDA。
+- FFmpeg：打包成 sidecar，先把影片／音訊轉為 16 kHz mono PCM WAV，再交給 ASR；這能避免不同 Windows codec／container 造成讀檔差異。
+- Cache：模型放在 `%LOCALAPPDATA%\\TaiwanSubtitle\\models\\huggingface`，不寫入 Program Files。
+- Log：放在 `%LOCALAPPDATA%\\TaiwanSubtitle\\logs`。
+- 匯出：SRT、TXT、JSON。
+
+
+
+## v0.5：影片編輯器風格工作區
+
+- 波形時間軸：載入影片後背景分析音訊波形。
+- 可拖曳字幕區塊：拖中間可平移，拖左右邊緣可調整開始／結束時間。
+- 即時樣式預覽：字型、大小、粗體／斜體、位置、文字色、外框、陰影。
+- 燒字輸出：使用 bundled FFmpeg 直接輸出 H.264 MP4。
+- 樣式會同時套用到畫面預覽與最終燒字影片。
+
+## v0.4：字幕編輯器＋影片預覽
+
+這一版加入內建編輯工作區，轉錄完成後會自動切到「字幕編輯器」並載入影片與 SRT。編輯器提供影片預覽、播放/暫停、±5 秒、timeline 定位、字幕 cue 清單、開始/結束時間與文字編輯，以及新增、刪除、合併、切分、復原/重做與 SRT 另存。
+
+影片預覽目前採本機 OpenCV/Pillow 解碼，預覽播放為**靜音**；音訊仍會完整交給 FFmpeg/ASR 處理。這樣 portable EXE 不必要求使用者另外安裝 VLC 或其他播放器。
+
+這個編輯器的工作流參考 AutoSubs 的「轉錄 → 編輯字幕 → 匯出」模型；AutoSubs 官方目前也將 standalone 模式描述為轉錄後編輯 speakers/subtitles，再輸出 SRT/text 或整合到 Resolve/Adobe。 citehttps://github.com/tmoroney/auto-subs
+
+## 最終使用方式
+
+使用者拿到安裝檔後：
+
+1. 雙擊 `TaiwanSubtitle-windows-x64-setup.exe`。
+2. 安裝完成後桌面會出現 `Taiwan Subtitle`。
+3. 雙擊啟動。
+4. 把影片拖進去。
+5. 按「開始產生字幕」。
+6. 第一次使用時自動從 Hugging Face 下載模型；之後使用本機 cache。
+
+這裡的「一鍵」指的是使用者不需要安裝 Python、pip、PyTorch、FFmpeg 或在命令列操作。PyTorch、qwen-asr、FFmpeg 都在建置好的 Windows 發行包中；只有模型權重第一次使用時需要網路下載。
+
+## 建立真正的 Windows EXE
+
+這個 repository 必須在 **Windows x64** 上執行 `build_windows.bat`，因為 PyInstaller 需要針對 Windows 建立 Windows bootloader / DLL 組合；目前這個 Linux 工作環境不能直接驗證 Windows 執行檔本身。
+
+建議先安裝：
+
+- Python 3.12 或 3.13 x64
+- Inno Setup 6
+
+然後：
+
+```bat
+build_windows.bat
 ```
 
-應顯示 `arm64`。建議使用 Homebrew Python 3.13；不要使用系統 Python。本工具不需要 Rosetta、CUDA 或 NVIDIA 套件。
+腳本會：
 
-若尚未安裝 Homebrew，執行：
+- 建立 `.venv`
+- 安裝目前的 Windows PyTorch wheel
+- 安裝 qwen-asr / OpenCC / drag-and-drop / Pillow / OpenCV GUI 依賴
+- 下載 FFmpeg Windows essentials sidecar
+- 用 PyInstaller 建立 `dist\\TaiwanSubtitle\\TaiwanSubtitle.exe`
+- 若偵測到 Inno Setup，另外建立 `release\\TaiwanSubtitle-windows-x64-setup.exe`
 
-```bash
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+FFmpeg 的 Windows builds 頁目前提供 release essentials ZIP，而且列出 Windows 10+ 相容性；本專案使用其固定下載別名 `ffmpeg-release-essentials.zip`。 citehttps://www.gyan.dev/ffmpeg/builds/
+
+## 開發模式
+
+```bat
+install_dev_windows.bat
+run_windows.bat
 ```
 
-若安裝程式要求安裝 Xcode Command Line Tools，依畫面完成。Apple Silicon 的 Homebrew 通常位於 `/opt/homebrew`；請完成安裝程式顯示的 PATH 設定，再確認：
+CLI：
 
-```bash
-brew --version
+```bat
+cli_windows.bat "D:\\video\\test.mp4"
+cli_windows.bat "D:\\video\\test.mp4" --small-model
+cli_windows.bat "D:\\video\\test.mp4" --device cuda
+cli_windows.bat "D:\\video\\test.mp4" --device cpu --no-aligner
 ```
 
-## 2. 把專案放進 Downloads
+## 為什麼不是把所有模型一起塞進 EXE？
 
-```bash
-cd ~/Downloads
-mkdir -p taiwan-subtitle
-cd taiwan-subtitle
-```
+TEA-ASR 與 Forced Aligner 本身就是大型模型。把它們硬塞進安裝檔會讓 installer 巨大，而且更新模型時必須重新下載整個程式。這版採「程式固定、模型可獨立 cache」的方式，安裝器保持可更新，模型也只下載一次。
 
-下載本專案的壓縮檔（GitHub 專案頁的 **Code → Download ZIP**，或 Releases 提供的壓縮檔），解壓縮後，把其中的 `transcribe.py` 與 `requirements.txt` 複製到上面建立的資料夾。也可一併複製 README 與 test 資料夾。
+## Windows 發行注意事項
 
-確認檔案直接放在 `~/Downloads/taiwan-subtitle`，不要多包一層資料夾：
+PyInstaller 對 Python/ML 套件的打包會比一般桌面程式更複雜，因此 `TaiwanSubtitle.spec` 已經顯式收集 `qwen_asr`、`transformers`、`accelerate`、`tkinterdnd2` 等 package data / hidden imports。打包仍應在乾淨的 Windows x64 環境做一次 smoke test。
 
-```bash
-ls transcribe.py requirements.txt
-```
+## 已知限制
 
-## 3. 建立獨立 Python 環境
-
-在 `~/Downloads/taiwan-subtitle` 中執行：
-
-```bash
-brew install ffmpeg python@3.13
-/opt/homebrew/bin/python3.13 -m venv .venv
-source .venv/bin/activate
-python -m pip install --upgrade pip
-```
-
-啟動後，Terminal 提示字元通常會出現 `(.venv)`。如果 Homebrew 安裝位置不同，先用 `which python3.13` 找出 Python 路徑，替換建立 venv 指令中的 `/opt/homebrew/bin/python3.13`。
-
-## 4. 安裝套件並確認 MLX
-
-`requirements.txt` 保留原專案已記錄的測試版本，包含 MLX Audio、MLX、OpenCC 與 Hugging Face 等套件：
-
-```bash
-python -m pip install -r requirements.txt
-python -c 'import mlx.core as mx; print(mx.default_device()); print(mx.sum(mx.array([1, 2, 3])).item())'
-ffmpeg -version
-```
-
-MLX 檢查正常應顯示 `Device(gpu, 0)` 與計算結果 `6`；ffmpeg 應顯示版本資訊。OpenCC 使用 Python 套件，不需要另外透過 Homebrew 安裝。
-
-## 5. 模型自動下載
-
-```bash
-mkdir -p models output
-```
-
-第一次執行時需要網路，工具會自動下載：
-
-- 語音辨識：`Alkd/TEA-ASR-1.1-MLX-4bit`
-- 時間對齊：`mlx-community/Qwen3-ForcedAligner-0.6B-8bit`
-
-預設快取位置：
-
-```text
-~/Downloads/taiwan-subtitle/
-├── transcribe.py
-├── requirements.txt
-├── models/
-│   └── huggingface/
-│       └── hub/
-└── output/
-```
-
-依教學估計，TEA-ASR 約 1.3 GB，Forced Aligner 約 1.2 GB；建議至少預留 4 GB 給模型，影音、暫存音訊和輸出另計。模型更新或備援模型下載可能需要更多空間。ASR 完成後會先釋放模型，再載入 aligner。
-
-不需要執行 `hf download`，也不需要手動建立模型名稱目錄。若已設定 `HF_HOME` 或 `HF_HUB_CACHE`，程式會優先尊重這些環境變數。
-
-若 TEA 載入或辨識失敗，程式會記錄錯誤，再嘗試 Qwen3-ASR 1.7B 8bit 與 0.6B 8bit；這可能另外下載備援模型。
-
-## 6. 開始製作字幕
-
-每次開啟新的 Terminal，先切換資料夾並啟動環境：
-
-```bash
-cd ~/Downloads/taiwan-subtitle
-source .venv/bin/activate
-```
-
-將下方範例路徑換成自己的影片或音訊完整路徑；保留引號以支援空白：
-
-```bash
-python transcribe.py "$HOME/Downloads/影片.mp4" --output-dir output --verbose
-```
-
-也可以先輸入 `python transcribe.py `，把 Finder 的檔案拖進 Terminal，再輸入 ` --output-dir output` 並按 Enter。
-
-支援本機 `mp4`、`mov`、`mkv`、`mp3`、`wav`、`m4a` 等 ffmpeg 可解碼且含音訊的檔案。不直接接受 YouTube URL；請先用瀏覽器或自己的下載流程取得本機影片。本工具不需要安裝 yt-dlp。
-
-完成後，可在 `output` 找到同名的 `.srt`、`.txt`、`.json`。若省略 `--output-dir output`，預設輸出到輸入檔所在資料夾。相同輸出資料夾內，同名結果會被覆寫，請先保存要保留的版本。
-
-SRT 不要標點：
-
-```bash
-python transcribe.py "$HOME/Downloads/影片.mp4" --output-dir output --no-punctuation
-```
-
-這個選項只影響 SRT，TXT 與 JSON 保留原文字。追加專有名詞：
-
-```bash
-python transcribe.py "$HOME/Downloads/影片.mp4" --output-dir output --hotword "新產品名"
-```
-
-查看完整參數：
-
-```bash
-python transcribe.py --help
-```
-
-辨識及時間對齊結果仍建議人工校對；對齊失敗時程式會記錄警告並採用較粗的時間戳。
-
-## 測試與版本
-
-若有複製 `test` 資料夾，可執行：
-
-```bash
-python -m unittest discover -s test -v
-python -m pip check
-```
-
-主要相依套件固定在 `requirements.txt`；間接相依套件與遠端模型 snapshot 並未全部鎖定，因此不保證未來安裝環境逐位元相同。
-
-## 模型與套件來源
-
-- [TEA-ASR 官方模型](https://huggingface.co/JacobLinCool/TEA-ASR-1.1)
-- [TEA-ASR MLX 模型](https://huggingface.co/Alkd/TEA-ASR-1.1-MLX-4bit)
-- [Qwen3 Forced Aligner MLX 模型](https://huggingface.co/mlx-community/Qwen3-ForcedAligner-0.6B-8bit)
-- [MLX Audio](https://github.com/Blaizzy/mlx-audio)
-
-模型與第三方套件依各自授權條款使用。本壓縮檔不包含模型權重或影音素材。
+目前這個發行版的第一階段目標是「自動產生高品質台灣繁中 SRT」，不是完整複製 AutoSubs 的 DaVinci Resolve / Premiere 整合。AutoSubs 本身現行桌面端使用 Tauri 2 + React/TypeScript/Rust，並包含 Resolve / Adobe 整合；這個專案則專注在 Taiwan Subtitle 的 ASR 與字幕輸出。 citehttps://github.com/tmoroney/auto-subs/tree/main/AutoSubs-App
