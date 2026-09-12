@@ -1,5 +1,3 @@
-# v0.5.5
+# Taiwan Subtitle v0.5.6
 
-- Fix Windows FFmpeg sidecar verification by using an absolute project root.
-- Pass the project root explicitly from `build_windows.bat` to `download_ffmpeg.ps1`.
-- Verify the copied FFmpeg executable before continuing the build.
+Windows release fix: escape the literal AppId GUID for Inno Setup and align installer version metadata.

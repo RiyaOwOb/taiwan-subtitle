@@ -1,10 +1,10 @@
 #define MyAppName "Taiwan Subtitle"
-#define MyAppVersion "0.5.0"
+#define MyAppVersion "0.5.6"
 #define MyAppPublisher "Taiwan Subtitle"
 #define MyAppExeName "TaiwanSubtitle.exe"
 
 [Setup]
-AppId={B8A842F8-A06C-4B9C-A9A8-7A9E7B6C0C30}
+AppId={{B8A842F8-A06C-4B9C-A9A8-7A9E7B6C0C30}}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
