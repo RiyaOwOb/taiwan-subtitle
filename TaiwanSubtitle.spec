@@ -1,13 +1,11 @@
-# PyInstaller spec. Run build_windows.bat on Windows after the runtime/ffmpeg
-# sidecar has been downloaded.
+# Taiwan Subtitle v0.6 PyInstaller spec.
 from pathlib import Path
 from PyInstaller.utils.hooks import collect_all
 
 root = Path.cwd().resolve()
 
-qwen_datas, qwen_binaries, qwen_hidden = collect_all("qwen_asr")
-torch_datas, torch_binaries, torch_hidden = collect_all("torch")
 transformers_datas, transformers_binaries, transformers_hidden = collect_all("transformers")
+torch_datas, torch_binaries, torch_hidden = collect_all("torch")
 accelerate_datas, accelerate_binaries, accelerate_hidden = collect_all("accelerate")
 tk_dnd_datas, tk_dnd_binaries, tk_dnd_hidden = collect_all("tkinterdnd2")
 cv2_datas, cv2_binaries, cv2_hidden = collect_all("cv2")
@@ -16,10 +14,16 @@ pil_datas, pil_binaries, pil_hidden = collect_all("PIL")
 hiddenimports = sorted(set([
     "app",
     "taiwan_subtitle",
-    "qwen_asr",
     "transformers",
+    "transformers.models.qwen3_asr",
+    "transformers.models.qwen3_asr.configuration_qwen3_asr",
+    "transformers.models.qwen3_asr.feature_extraction_qwen3_asr",
+    "transformers.models.qwen3_asr.processing_qwen3_asr",
+    "transformers.models.qwen3_asr.modeling_qwen3_asr",
+    "transformers.models.qwen3_asr.modular_qwen3_asr",
     "accelerate",
     "safetensors",
+    "huggingface_hub",
     "soundfile",
     "opencc",
     "tkinterdnd2",
@@ -27,10 +31,8 @@ hiddenimports = sorted(set([
     "cv2",
     "PIL",
     "PIL.Image",
-    "PIL.ImageTk",
-    *qwen_hidden,
-    *torch_hidden,
     *transformers_hidden,
+    *torch_hidden,
     *accelerate_hidden,
     *tk_dnd_hidden,
     *cv2_hidden,
@@ -38,18 +40,16 @@ hiddenimports = sorted(set([
 ]))
 
 datas = [
-    *qwen_datas,
-    *torch_datas,
     *transformers_datas,
+    *torch_datas,
     *accelerate_datas,
     *tk_dnd_datas,
     *cv2_datas,
     *pil_datas,
 ]
 binaries = [
-    *qwen_binaries,
-    *torch_binaries,
     *transformers_binaries,
+    *torch_binaries,
     *accelerate_binaries,
     *tk_dnd_binaries,
     *cv2_binaries,

@@ -4,43 +4,46 @@ set "ROOT=%~dp0"
 cd /d "%ROOT%"
 
 echo ==============================================
-echo Taiwan Subtitle - Windows x64 Release Builder
+echo Taiwan Subtitle v0.6 - Windows x64 Release
 echo ==============================================
 echo Project root: %ROOT%
 
-where python >nul 2>nul
+where py >nul 2>nul
 if errorlevel 1 (
-  where py >nul 2>nul || (echo [ERROR] Python 3.12/3.13 is required.& exit /b 1)
-  set "PY=py -3.13"
-) else (
+  where python >nul 2>nul || (echo [ERROR] Python 3.13 is required.& exit /b 1)
   set "PY=python"
+) else (
+  set "PY=py -3.13"
 )
 
 if not exist "%ROOT%.venv\Scripts\python.exe" (
   %PY% -m venv "%ROOT%.venv"
-  if errorlevel 1 %PY% -m venv "%ROOT%.venv"
+  if errorlevel 1 (echo [ERROR] Could not create venv.& exit /b 1)
 )
-if not exist "%ROOT%.venv\Scripts\python.exe" (echo [ERROR] Could not create venv.& exit /b 1)
+if not exist "%ROOT%.venv\Scripts\python.exe" (echo [ERROR] Python venv missing.& exit /b 1)
 call "%ROOT%.venv\Scripts\activate.bat"
-python -m pip install --upgrade pip wheel
+python -m pip install --upgrade pip wheel packaging
 
 powershell -NoProfile -ExecutionPolicy Bypass -File "%ROOT%download_ffmpeg.ps1"
 if errorlevel 1 (echo [ERROR] FFmpeg download step failed.& exit /b 1)
-
 set "FFMPEG=%ROOT%runtime\ffmpeg\ffmpeg.exe"
 if not exist "%FFMPEG%" (
-  echo [ERROR] FFmpeg sidecar is missing: %FFMPEG%
-  echo [DEBUG] Contents of runtime:
+  echo [ERROR] FFmpeg sidecar missing: %FFMPEG%
   if exist "%ROOT%runtime" dir /s /b "%ROOT%runtime"
   exit /b 1
 )
 "%FFMPEG%" -version | findstr /B /C:"ffmpeg version" >nul
-if errorlevel 1 (echo [ERROR] FFmpeg exists but could not be executed.& exit /b 1)
+if errorlevel 1 (echo [ERROR] FFmpeg exists but could not execute.& exit /b 1)
 echo FFmpeg sidecar verified: %FFMPEG%
 
-python -m pip install --upgrade torch
-python -m pip install -r requirements.txt
+REM Build against the official CUDA 12.8 Windows wheel so NVIDIA users can use CUDA.
+python -m pip install --upgrade --index-url https://download.pytorch.org/whl/cu128 torch==2.11.0
+python -m pip install --upgrade -r requirements.txt
 python -m pip install --upgrade pyinstaller
+
+python -c "import torch; print('Torch:', torch.__version__); print('CUDA runtime:', torch.version.cuda); print('CUDA available:', torch.cuda.is_available())"
+python -c "import transformers; print('Transformers:', transformers.__version__)"
+python -c "from transformers import AutoModelForMultimodalLM, AutoModelForTokenClassification; print('Qwen native Transformers classes: OK')"
 
 rmdir /s /q build 2>nul
 rmdir /s /q dist 2>nul
@@ -51,7 +54,7 @@ python -m PyInstaller --noconfirm --clean TaiwanSubtitle.spec
 if errorlevel 1 (echo [ERROR] PyInstaller build failed.& exit /b 1)
 if not exist "dist\TaiwanSubtitle\TaiwanSubtitle.exe" (echo [ERROR] EXE missing after build.& exit /b 1)
 
-powershell -NoProfile -ExecutionPolicy Bypass -Command "Compress-Archive -Path 'dist\TaiwanSubtitle\*' -DestinationPath 'release\TaiwanSubtitle-windows-x64-portable.zip' -Force"
+powershell -NoProfile -Command "Compress-Archive -Path 'dist\TaiwanSubtitle\*' -DestinationPath 'release\TaiwanSubtitle-windows-x64-v0.6.0-portable.zip' -Force"
 if errorlevel 1 (echo [ERROR] Portable ZIP creation failed.& exit /b 1)
 echo [2/3] Portable ZIP created.
 
@@ -66,9 +69,7 @@ if not exist "release\TaiwanSubtitle-windows-x64-setup.exe" (echo [ERROR] Instal
 
 echo [3/3] Installer created.
 echo.
-echo ==============================================
 echo BUILD COMPLETE
-echo ==============================================
-echo Portable ZIP: %ROOT%release\TaiwanSubtitle-windows-x64-portable.zip
-echo Installer:    %ROOT%release\TaiwanSubtitle-windows-x64-setup.exe
+echo Portable: %ROOT%release\TaiwanSubtitle-windows-x64-v0.6.0-portable.zip
+echo Installer: %ROOT%release\TaiwanSubtitle-windows-x64-setup.exe
 endlocal

@@ -1,5 +1,5 @@
 #define MyAppName "Taiwan Subtitle"
-#define MyAppVersion "0.5.6"
+#define MyAppVersion "0.6.0"
 #define MyAppPublisher "Taiwan Subtitle"
 #define MyAppExeName "TaiwanSubtitle.exe"
 

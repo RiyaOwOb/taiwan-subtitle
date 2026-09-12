@@ -1,12 +1,17 @@
-# Runtime dependencies. PyTorch is installed separately by the Windows builder
-# so the builder can use the current official Windows wheel / CUDA build.
-qwen-asr>=0.0.6
+# Taiwan Subtitle v0.6 Windows native-Transformers runtime.
+# PyTorch is installed separately by build_windows.bat so the release build
+# uses the official Windows CUDA 12.8 wheel while CPU machines can still run.
+torch==2.11.0
+accelerate>=1.12,<2
+# Qwen3 ForcedAligner HF model currently documents installing Transformers
+# from source until the aligner lands in an official Transformers release.
+transformers @ git+https://github.com/huggingface/transformers.git
+huggingface-hub[hf_xet]>=0.35
+safetensors>=0.5,<1
 opencc-python-reimplemented==0.1.7
 tkinterdnd2>=0.4.3
-huggingface-hub[hf_xet]>=0.35
 soundfile>=0.13,<0.15
 numpy>=2.0,<3
 psutil>=6,<8
-
 Pillow>=11,<13
 opencv-python-headless>=4.10,<5

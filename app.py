@@ -34,7 +34,7 @@ BaseTk = TkinterDnD.Tk if TkinterDnD else tk.Tk
 class App(BaseTk):
     def __init__(self):
         super().__init__()
-        self.title("Taiwan Subtitle 0.5")
+        self.title("Taiwan Subtitle 0.6")
         self.geometry("1080x720")
         self.minsize(900, 620)
         self.configure(bg="#f6f7f9")
