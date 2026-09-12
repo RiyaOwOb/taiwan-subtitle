@@ -1,3 +1,8 @@
+# v0.5.2
+
+- Fix PyInstaller spec path resolution on GitHub Actions/Windows by using the build working directory instead of `__file__`.
+- Update GitHub Actions to Node 24-compatible action versions.
+
 ## v0.5.0 — Video Editor Workspace
 
 - Added waveform timeline rendering.

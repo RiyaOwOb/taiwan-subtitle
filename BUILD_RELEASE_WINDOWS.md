@@ -36,3 +36,8 @@ Portable：解壓後直接雙擊 `TaiwanSubtitle.exe`。
 Installer：雙擊 `TaiwanSubtitle-windows-x64-setup.exe`，安裝後從開始功能表或桌面捷徑啟動。
 
 FFmpeg 會隨應用程式提供。AI 模型第一次使用時會下載至使用者的 Local AppData 快取，不會塞進安裝器。
+
+
+## v0.5.2 build fix
+
+The PyInstaller spec resolves project files from the build working directory. The release workflow changes into the repository directory before invoking PyInstaller, so the spec no longer depends on `__file__` being defined by PyInstaller.

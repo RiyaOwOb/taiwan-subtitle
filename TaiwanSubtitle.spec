@@ -3,7 +3,7 @@
 from pathlib import Path
 from PyInstaller.utils.hooks import collect_all
 
-root = Path(__file__).resolve().parent
+root = Path.cwd().resolve()
 
 qwen_datas, qwen_binaries, qwen_hidden = collect_all("qwen_asr")
 torch_datas, torch_binaries, torch_hidden = collect_all("torch")
