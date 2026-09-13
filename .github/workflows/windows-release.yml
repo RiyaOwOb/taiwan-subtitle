@@ -14,7 +14,7 @@ permissions:
 jobs:
   build-windows:
     runs-on: windows-latest
-    timeout-minutes: 90
+    timeout-minutes: 120
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -39,24 +39,25 @@ jobs:
         shell: pwsh
         run: |
           $files = @(
-            'dist/TaiwanSubtitle/TaiwanSubtitle.exe',
-            'release/TaiwanSubtitle-windows-x64-v0.6.0-portable.zip',
+            'release/TaiwanSubtitle-windows-x64-v0.6.2-portable.zip',
             'release/TaiwanSubtitle-windows-x64-setup.exe'
           )
           foreach ($file in $files) {
             if (-not (Test-Path $file)) { throw "Missing release file: $file" }
             $size = (Get-Item $file).Length
             if ($size -lt 1024) { throw "Release file is unexpectedly small: $file ($size bytes)" }
-            Write-Host "$file => $size bytes"
+            Write-Host ("$file => {0:N0} bytes ({1:N1} MiB)" -f $size, ($size / 1MB))
           }
+          $portable = (Get-Item 'release/TaiwanSubtitle-windows-x64-v0.6.2-portable.zip').Length
+          if ($portable -ge 2147483648) { throw "Portable ZIP is too large for GitHub Release: $portable bytes" }
 
       - name: Upload portable + installer
         uses: actions/upload-artifact@v5
         with:
-          name: TaiwanSubtitle-windows-x64-v0.6.0
+          name: TaiwanSubtitle-windows-x64-v0.6.2
           if-no-files-found: error
           path: |
-            release/TaiwanSubtitle-windows-x64-v0.6.0-portable.zip
+            release/TaiwanSubtitle-windows-x64-v0.6.2-portable.zip
             release/TaiwanSubtitle-windows-x64-setup.exe
 
       - name: Publish GitHub Release
@@ -65,5 +66,5 @@ jobs:
         with:
           generate_release_notes: true
           files: |
-            release/TaiwanSubtitle-windows-x64-v0.6.0-portable.zip
+            release/TaiwanSubtitle-windows-x64-v0.6.2-portable.zip
             release/TaiwanSubtitle-windows-x64-setup.exe

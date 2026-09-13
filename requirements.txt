@@ -1,10 +1,8 @@
-# Taiwan Subtitle v0.6 Windows native-Transformers runtime.
-# PyTorch is installed separately by build_windows.bat so the release build
-# uses the official Windows CUDA 12.8 wheel while CPU machines can still run.
-torch==2.11.0
+# Taiwan Subtitle v0.6.2 runtime dependencies.
+# PyTorch is installed separately in build_windows.bat:
+#   CPU wheel for portable build
+#   CUDA 12.8 wheel for full installer
 accelerate>=1.12,<2
-# Qwen3 ForcedAligner HF model currently documents installing Transformers
-# from source until the aligner lands in an official Transformers release.
 transformers @ git+https://github.com/huggingface/transformers.git
 huggingface-hub[hf_xet]>=0.35
 safetensors>=0.5,<1

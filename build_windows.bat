@@ -4,7 +4,7 @@ set "ROOT=%~dp0"
 cd /d "%ROOT%"
 
 echo ==============================================
-echo Taiwan Subtitle v0.6 - Windows x64 Release
+echo Taiwan Subtitle v0.6.2 - Windows x64 Release
 echo ==============================================
 echo Project root: %ROOT%
 
@@ -16,13 +16,12 @@ if errorlevel 1 (
   set "PY=py -3.13"
 )
 
-if not exist "%ROOT%.venv\Scripts\python.exe" (
-  %PY% -m venv "%ROOT%.venv"
-  if errorlevel 1 (echo [ERROR] Could not create venv.& exit /b 1)
+if not exist "%ROOT%.venv-portable\Scripts\python.exe" (
+  %PY% -m venv "%ROOT%.venv-portable" || (echo [ERROR] Could not create portable venv.& exit /b 1)
 )
-if not exist "%ROOT%.venv\Scripts\python.exe" (echo [ERROR] Python venv missing.& exit /b 1)
-call "%ROOT%.venv\Scripts\activate.bat"
-python -m pip install --upgrade pip wheel packaging
+if not exist "%ROOT%.venv-installer\Scripts\python.exe" (
+  %PY% -m venv "%ROOT%.venv-installer" || (echo [ERROR] Could not create installer venv.& exit /b 1)
+)
 
 powershell -NoProfile -ExecutionPolicy Bypass -File "%ROOT%download_ffmpeg.ps1"
 if errorlevel 1 (echo [ERROR] FFmpeg download step failed.& exit /b 1)
@@ -36,28 +35,55 @@ if not exist "%FFMPEG%" (
 if errorlevel 1 (echo [ERROR] FFmpeg exists but could not execute.& exit /b 1)
 echo FFmpeg sidecar verified: %FFMPEG%
 
-REM Build against the official CUDA 12.8 Windows wheel so NVIDIA users can use CUDA.
+if exist "build" rmdir /s /q build
+if exist "dist" rmdir /s /q dist
+if exist "release" rmdir /s /q release
+mkdir release
+mkdir release\portable-stage
+
+REM =====================
+REM 1/4 CPU-only Portable
+REM =====================
+echo [1/4] Preparing CPU-only portable environment...
+call "%ROOT%.venv-portable\Scripts\activate.bat"
+python -m pip install --upgrade pip wheel packaging
+python -m pip install --upgrade --index-url https://download.pytorch.org/whl/cpu torch==2.11.0
+python -m pip install --upgrade -r requirements.txt
+python -m pip install --upgrade pyinstaller
+python -c "import torch; print('Portable Torch:', torch.__version__); print('Portable CUDA:', torch.version.cuda); print('Portable CUDA available:', torch.cuda.is_available()); assert torch.version.cuda is None; assert not torch.cuda.is_available()"
+python -c "import transformers; print('Transformers:', transformers.__version__)"
+python -c "from transformers import AutoModelForMultimodalLM, AutoModelForTokenClassification; print('Qwen native Transformers classes: OK')"
+python -m PyInstaller --noconfirm --clean TaiwanSubtitle-portable.spec
+if errorlevel 1 (echo [ERROR] Portable PyInstaller build failed.& exit /b 1)
+if not exist "dist\TaiwanSubtitle\TaiwanSubtitle.exe" (echo [ERROR] Portable EXE missing.& exit /b 1)
+powershell -NoProfile -Command "Compress-Archive -Path 'dist\TaiwanSubtitle\*' -DestinationPath 'release\TaiwanSubtitle-windows-x64-v0.6.2-portable.zip' -Force"
+if errorlevel 1 (echo [ERROR] Portable ZIP creation failed.& exit /b 1)
+for %%F in ("release\TaiwanSubtitle-windows-x64-v0.6.2-portable.zip") do echo Portable size: %%~zF bytes
+call deactivate
+
+REM =====================
+REM 2/4 Full CUDA Installer
+REM =====================
+echo [2/4] Preparing CUDA-enabled installer environment...
+call "%ROOT%.venv-installer\Scripts\activate.bat"
+python -m pip install --upgrade pip wheel packaging
 python -m pip install --upgrade --index-url https://download.pytorch.org/whl/cu128 torch==2.11.0
 python -m pip install --upgrade -r requirements.txt
 python -m pip install --upgrade pyinstaller
-
-python -c "import torch; print('Torch:', torch.__version__); print('CUDA runtime:', torch.version.cuda); print('CUDA available:', torch.cuda.is_available())"
+python -c "import torch; print('Installer Torch:', torch.__version__); print('Installer CUDA runtime:', torch.version.cuda)"
 python -c "import transformers; print('Transformers:', transformers.__version__)"
 python -c "from transformers import AutoModelForMultimodalLM, AutoModelForTokenClassification; print('Qwen native Transformers classes: OK')"
+if exist "build" rmdir /s /q build
+if exist "dist" rmdir /s /q dist
+python -m PyInstaller --noconfirm --clean TaiwanSubtitle-installer.spec
+if errorlevel 1 (echo [ERROR] Installer PyInstaller build failed.& exit /b 1)
+if not exist "dist\TaiwanSubtitle\TaiwanSubtitle.exe" (echo [ERROR] Installer EXE missing.& exit /b 1)
+call deactivate
 
-rmdir /s /q build 2>nul
-rmdir /s /q dist 2>nul
-if not exist release mkdir release
-
-echo [1/3] Building portable application...
-python -m PyInstaller --noconfirm --clean TaiwanSubtitle.spec
-if errorlevel 1 (echo [ERROR] PyInstaller build failed.& exit /b 1)
-if not exist "dist\TaiwanSubtitle\TaiwanSubtitle.exe" (echo [ERROR] EXE missing after build.& exit /b 1)
-
-powershell -NoProfile -Command "Compress-Archive -Path 'dist\TaiwanSubtitle\*' -DestinationPath 'release\TaiwanSubtitle-windows-x64-v0.6.0-portable.zip' -Force"
-if errorlevel 1 (echo [ERROR] Portable ZIP creation failed.& exit /b 1)
-echo [2/3] Portable ZIP created.
-
+REM =====================
+REM 3/4 Inno Setup
+REM =====================
+echo [3/4] Building installer...
 set "ISCC_EXE="
 where ISCC.exe >nul 2>nul && set "ISCC_EXE=ISCC.exe"
 if not defined ISCC_EXE if exist "%ProgramFiles(x86)%\Inno Setup 6\ISCC.exe" set "ISCC_EXE=%ProgramFiles(x86)%\Inno Setup 6\ISCC.exe"
@@ -67,9 +93,17 @@ if not defined ISCC_EXE (echo [ERROR] Inno Setup 6 not found.& exit /b 1)
 if errorlevel 1 (echo [ERROR] Inno Setup build failed.& exit /b 1)
 if not exist "release\TaiwanSubtitle-windows-x64-setup.exe" (echo [ERROR] Installer missing after build.& exit /b 1)
 
-echo [3/3] Installer created.
+REM =====================
+REM 4/4 Final checks
+REM =====================
+echo [4/4] Final release checks...
+for %%F in ("release\TaiwanSubtitle-windows-x64-v0.6.2-portable.zip") do echo Portable ZIP: %%~zF bytes
+for %%F in ("release\TaiwanSubtitle-windows-x64-setup.exe") do echo Installer EXE: %%~zF bytes
+powershell -NoProfile -Command "$p='release\TaiwanSubtitle-windows-x64-v0.6.2-portable.zip'; if ((Get-Item $p).Length -ge 2147483648) { throw ('Portable ZIP is {0:N1} MiB and cannot be uploaded; reduce the bundle below 2048 MiB.' -f ((Get-Item $p).Length / 1MB)) }"
+if errorlevel 1 exit /b 1
+
 echo.
 echo BUILD COMPLETE
-echo Portable: %ROOT%release\TaiwanSubtitle-windows-x64-v0.6.0-portable.zip
+echo Portable: %ROOT%release\TaiwanSubtitle-windows-x64-v0.6.2-portable.zip
 echo Installer: %ROOT%release\TaiwanSubtitle-windows-x64-setup.exe
 endlocal
