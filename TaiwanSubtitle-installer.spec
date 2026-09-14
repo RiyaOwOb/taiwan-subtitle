@@ -1,4 +1,4 @@
-# Taiwan Subtitle v0.6.2 full installer build.
+# Taiwan Subtitle v0.6.3 full installer build.
 from pathlib import Path
 from PyInstaller.utils.hooks import collect_submodules, collect_data_files
 

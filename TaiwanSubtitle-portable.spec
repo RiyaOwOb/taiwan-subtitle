@@ -1,4 +1,4 @@
-# Taiwan Subtitle v0.6.2 lean CPU portable build.
+# Taiwan Subtitle v0.6.3 lean CPU portable build.
 from pathlib import Path
 from PyInstaller.utils.hooks import collect_submodules, collect_data_files
 

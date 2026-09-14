@@ -4,6 +4,7 @@
 #   CUDA 12.8 wheel for full installer
 accelerate>=1.12,<2
 transformers @ git+https://github.com/huggingface/transformers.git
+tokenizers>=0.23.1,<0.24
 huggingface-hub[hf_xet]>=0.35
 safetensors>=0.5,<1
 opencc-python-reimplemented==0.1.7

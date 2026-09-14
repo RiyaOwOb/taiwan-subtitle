@@ -49,6 +49,9 @@ call "%ROOT%.venv-portable\Scripts\activate.bat"
 python -m pip install --upgrade pip wheel packaging
 python -m pip install --upgrade --index-url https://download.pytorch.org/whl/cpu torch==2.11.0
 python -m pip install --upgrade -r requirements.txt
+python -m pip install --upgrade "tokenizers>=0.23.1,<0.24"
+python -m pip check
+python -c "import tokenizers; print('Tokenizers:', tokenizers.__version__); assert tokenizers.__version__.startswith('0.23.')"
 python -m pip install --upgrade pyinstaller
 python -c "import torch; print('Portable Torch:', torch.__version__); print('Portable CUDA:', torch.version.cuda); print('Portable CUDA available:', torch.cuda.is_available()); assert torch.version.cuda is None; assert not torch.cuda.is_available()"
 python -c "import transformers; print('Transformers:', transformers.__version__)"
@@ -69,6 +72,9 @@ call "%ROOT%.venv-installer\Scripts\activate.bat"
 python -m pip install --upgrade pip wheel packaging
 python -m pip install --upgrade --index-url https://download.pytorch.org/whl/cu128 torch==2.11.0
 python -m pip install --upgrade -r requirements.txt
+python -m pip install --upgrade "tokenizers>=0.23.1,<0.24"
+python -m pip check
+python -c "import tokenizers; print('Tokenizers:', tokenizers.__version__); assert tokenizers.__version__.startswith('0.23.')"
 python -m pip install --upgrade pyinstaller
 python -c "import torch; print('Installer Torch:', torch.__version__); print('Installer CUDA runtime:', torch.version.cuda)"
 python -c "import transformers; print('Transformers:', transformers.__version__)"
